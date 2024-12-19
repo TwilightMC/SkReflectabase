@@ -1,5 +1,3 @@
-# Requires Skript-Reflect
-
 import:
     net.twilightmc.skReflectabase.DatabaseManager
     net.twilightmc.skReflectabase.SkReflectabase
