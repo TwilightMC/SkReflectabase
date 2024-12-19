@@ -1,0 +1,9 @@
+name: SkReflectabase
+version: '1.0.0-PRODUCTION'
+main: net.twilightmc.skReflectabase.SkReflectabase
+api-version: '1.21'
+prefix: SkReflectabase
+load: STARTUP
+authors: [ qixip (Pixityy) ]
+description: Adds the necessary code to allow Skript-Reflection to access a database.
+website: pixity.dev
