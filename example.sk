@@ -1,48 +1,41 @@
-#SkriptReflect
-
 import:
     net.twilightmc.skReflectabase.DatabaseManager
-    net.twilightmc.skReflectabase.DatabaseManager$QueryResult
     net.twilightmc.skReflectabase.SkReflectabase
 
-command /db:
+command /dbtest:
     trigger:
         # Get plugin instance and database manager
-        set {_plugin} to SkReflectabase.getInstance()  # Adjust this if necessary
+        set {_plugin} to SkReflectabase.getInstance()
         set {_dbManager} to {_plugin}.getDatabaseManager()
 
-        # Check if the players table exists
-        set {_exists} to {_dbManager}.tableExists("players")
+        # Create the table if it doesn't exist
+        set {_tableExists} to {_dbManager}.tableExists("players")
+        if {_tableExists} is false:
+            send "Creating 'players' table..." to player
+            set {_createQuery} to "CREATE TABLE players (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255), money INT);"
+            set {_result} to {_dbManager}.executeUpdate({_createQuery})
+            if {_result} >= 0:
+                send "Table created successfully." to player
+            else:
+                send "Failed to create the table. Check your database settings." to player
+                stop
 
-        # If the table doesn't exist, create it
-        if {_exists} is false:
-            send "Table 'players' does not exist. Creating it now..." to player
-            set {_createTableQuery} to "CREATE TABLE players (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255) NOT NULL, money INT DEFAULT 0, rank VARCHAR(50));"
-            set {_result} to {_dbManager}.executeUpdate({_createTableQuery})
-            send "Table 'players' has been created." to player
-
-        # Now proceed with the query and other operations
-        set {_result} to {_dbManager}.executeQuery("SELECT * FROM players WHERE name = ?", player's name)
-        set {_money} to {_result}.getValue(0, "money")
-        set {_rank} to {_result}.getValue(0, "rank")
-        set {_rowCount} to {_result}.getRowCount()
-
-        # Insert data if player does not exist
-        if {_rowCount} is 0:
-            send "Player not found in database. Inserting new player..." to player
-            set {_insertQuery} to "INSERT INTO players (name, money) VALUES (?, ?)"
-            set {_insertResult} to {_dbManager}.executeUpdate({_insertQuery}, player's name, 100)
-            send "Player inserted with default values." to player
+        # Insert a test record
+        send "Inserting test data..." to player
+        set {_insertQuery} to "INSERT INTO players (name, money) VALUES (?, ?)"
+        set {_insertResult} to {_dbManager}.executeUpdate({_insertQuery}, "TestPlayer", 100)
+        if {_insertResult} > 0:
+            send "Test data inserted successfully." to player
         else:
-            send "Player data: Money: %{_money}%, Rank: %{_rank}%" to player
+            send "Failed to insert test data." to player
+            stop
 
-        # Update player data
-        set {_updated} to {_dbManager}.executeUpdate("UPDATE players SET money = ? WHERE name = ?", 200, player's name)
-
-        # Delete player data
-        set {_deleted} to {_dbManager}.executeUpdate("DELETE FROM players WHERE name = ?", player's name)
-
-        # Get multiple rows (just for demonstration)
-        set {_result} to {_dbManager}.executeQuery("SELECT * FROM players")
-        set {_rows} to {_result}.getRows()
-        send "Retrieved %{_rows.size()}% rows from the database." to player
+        # Fetch the inserted data
+        send "Fetching data from the table..." to player
+        set {_selectQuery} to "SELECT * FROM players WHERE name = ?"
+        set {_result} to {_dbManager}.executeQuery({_selectQuery}, "TestPlayer")
+        if {_result} is not set:
+            send "No data found for 'TestPlayer'." to player
+        else:
+            set {_money} to {_result}.getValue(0, "money")
+            send "Fetched data: Name: TestPlayer, Money: %{_money}%" to player
