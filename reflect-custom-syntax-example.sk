@@ -110,3 +110,103 @@ command /setvariable <text> <text>:
 command /getvariable <text>:
     trigger:
         get database variable arg-1 and send to player
+
+# ASYNC VERSION ASYNC VERSION ASYNC VERSION ASYNC VERSION 
+# Custom effect to set a database variable asynchronously
+effect async set database variable %text% to %text%:
+    trigger:
+        set {_name} to expr-1
+        set {_value} to expr-2
+
+        # Get plugin instance and database manager
+        set {_plugin} to SkReflectabase.getInstance()
+        set {_dbManager} to {_plugin}.getDatabaseManager()
+
+        # Ensure the "variables" table exists asynchronously
+        set {_tableExists} to {_dbManager}.tableExistsAsync("variables").get()
+        if {_tableExists} is false:
+            send "Creating 'variables' table..." to console
+            set {_createQuery} to "CREATE TABLE variables (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255) UNIQUE, value VARCHAR(255));"
+            set {_result} to {_dbManager}.executeUpdateAsync({_createQuery}).get()
+            if {_result} >= 0:
+                send "Table 'variables' created successfully." to console
+            else:
+                send "Failed to create the 'variables' table. Check your database settings." to console
+                stop
+
+        # Check if variable already exists asynchronously
+        set {_selectQuery} to "SELECT * FROM variables WHERE name = ?"
+        set {_result} to {_dbManager}.executeQueryAsync({_selectQuery}, {_name}).get()
+
+        if {_result} is not null:
+            if {_result}.getRowCount() > 0:
+                # Update existing variable asynchronously
+                set {_updateQuery} to "UPDATE variables SET value = ? WHERE name = ?"
+                set {_updateResult} to {_dbManager}.executeUpdateAsync({_updateQuery}, {_value}, {_name}).get()
+                if {_updateResult} > 0:
+                    send "Database Variable '%{_name}%' updated to '%{_value}%'." to console
+                else:
+                    send "Failed to update database variable '%{_name}%'." to console
+            else:
+                # Insert new variable asynchronously
+                set {_insertQuery} to "INSERT INTO variables (name, value) VALUES (?, ?)"
+                set {_insertResult} to {_dbManager}.executeUpdateAsync({_insertQuery}, {_name}, {_value}).get()
+                if {_insertResult} > 0:
+                    send "Database Variable '%{_name}%' set to '%{_value}%'." to console
+                else:
+                    send "Failed to set database variable '%{_name}%'." to console
+
+# Custom effect to get a database variable and send the result to a player asynchronously
+effect async get database variable %text% and send to %player%:
+    trigger:
+        set {_name} to expr-1
+        set {_player} to expr-2
+
+        # Get plugin instance and database manager
+        set {_plugin} to SkReflectabase.getInstance()
+        set {_dbManager} to {_plugin}.getDatabaseManager()
+
+        # Retrieve variable value asynchronously
+        set {_selectQuery} to "SELECT value FROM variables WHERE name = ?"
+        set {_result} to {_dbManager}.executeQueryAsync({_selectQuery}, {_name}).get()
+
+        if {_result} is not null:
+            if {_result}.getRowCount() > 0:
+                set {_value} to {_result}.getValue(0, "value")
+                send "Database Variable '%{_name}%' has value '%{_value}%'." to console
+                send "Database Variable '%{_name}%' has value '%{_value}%'." to {_player}
+            else:
+                send "Database Variable '%{_name}%' not found." to console
+                send "Database Variable '%{_name}%' not found." to {_player}
+
+# Custom effect to get a database variable and copy it into a Skript-Variable asynchronously
+effect async copy database variable %text% to skript variable %text%:
+    trigger:
+        set {_name} to expr-1
+        set {_varname} to expr-2
+
+        # Get plugin instance and database manager
+        set {_plugin} to SkReflectabase.getInstance()
+        set {_dbManager} to {_plugin}.getDatabaseManager()
+
+        # Retrieve variable value asynchronously
+        set {_selectQuery} to "SELECT value FROM variables WHERE name = ?"
+        set {_result} to {_dbManager}.executeQueryAsync({_selectQuery}, {_name}).get()
+
+        if {_result} is not null:
+            if {_result}.getRowCount() > 0:
+                set {_value} to {_result}.getValue(0, "value")
+                send "Database Variable '%{_name}%' has value '%{_value}%'." to console
+                set {%{_varname}%} to {_value}
+                send "Skript Variable '%{%{_varname}%}%' set to '%{_value}%'." to console
+            else:
+                send "Database Variable '%{_name}%' not found." to console
+
+command /asyncsetvariable <text> <text>:
+    trigger:
+        async set database variable arg-1 to arg-2
+        send "Variable '%arg-1%' set to '%arg-2%'." to player
+
+command /asyncgetvariable <text>:
+    trigger:
+        async get database variable arg-1 and send to player
