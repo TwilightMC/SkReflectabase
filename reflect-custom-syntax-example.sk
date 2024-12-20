@@ -1,0 +1,85 @@
+# Made by @pixity on Discord. For use with SkReflectabase
+# This is fully available to be used for your own projects.
+# You may claim this as your own and modify it!
+# Source: https://github.com/TwilightMC/SkReflectabase
+# https://tpgamesnl.gitbook.io/skript-reflect/advanced/custom-syntax is where you can find the docs to what i've made here.
+
+import:
+    net.twilightmc.skReflectabase.DatabaseManager
+    net.twilightmc.skReflectabase.SkReflectabase
+
+# Custom effect to set a database variable
+effect set database variable %text% to %text%:
+    trigger:
+        set {_name} to expr-1
+        set {_value} to expr-2
+
+        # Get plugin instance and database manager
+        set {_plugin} to SkReflectabase.getInstance()
+        set {_dbManager} to {_plugin}.getDatabaseManager()
+
+        # Ensure the "variables" table exists
+        set {_tableExists} to {_dbManager}.tableExists("variables")
+        if {_tableExists} is false:
+            send "Creating 'variables' table..." to console
+            set {_createQuery} to "CREATE TABLE variables (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255) UNIQUE, value VARCHAR(255));"
+            set {_result} to {_dbManager}.executeUpdate({_createQuery})
+            if {_result} >= 0:
+                send "Table 'variables' created successfully." to console
+            else:
+                send "Failed to create the 'variables' table. Check your database settings." to console
+                stop
+
+        # Check if variable already exists
+        set {_selectQuery} to "SELECT * FROM variables WHERE name = ?"
+        set {_result} to {_dbManager}.executeQuery({_selectQuery}, {_name})
+
+        if {_result} is not null:
+            if {_result}.getRowCount() > 0:
+                # Update existing variable
+                set {_updateQuery} to "UPDATE variables SET value = ? WHERE name = ?"
+                set {_updateResult} to {_dbManager}.executeUpdate({_updateQuery}, {_value}, {_name})
+                if {_updateResult} > 0:
+                    send "Variable '%{_name}%' updated to '%{_value}%'." to console
+                else:
+                    send "Failed to update variable '%{_name}%'." to console
+            else:
+                # Insert new variable
+                set {_insertQuery} to "INSERT INTO variables (name, value) VALUES (?, ?)"
+                set {_insertResult} to {_dbManager}.executeUpdate({_insertQuery}, {_name}, {_value})
+                if {_insertResult} > 0:
+                    send "Variable '%{_name}%' set to '%{_value}%'." to console
+                else:
+                    send "Failed to set variable '%{_name}%'." to console
+
+# Custom effect to get a database variable and send the result to a player
+effect get database variable %text% and send to %player%:
+    trigger:
+        set {_name} to expr-1
+        set {_player} to expr-2
+
+        # Get plugin instance and database manager
+        set {_plugin} to SkReflectabase.getInstance()
+        set {_dbManager} to {_plugin}.getDatabaseManager()
+
+        # Retrieve variable value
+        set {_selectQuery} to "SELECT value FROM variables WHERE name = ?"
+        set {_result} to {_dbManager}.executeQuery({_selectQuery}, {_name})
+
+        if {_result} is not null:
+            if {_result}.getRowCount() > 0:
+                set {_value} to {_result}.getValue(0, "value")
+                send "Variable '%{_name}%' has value '%{_value}%'." to console
+                send "Variable '%{_name}%' has value '%{_value}%'." to {_player}
+            else:
+                send "Variable '%{_name}%' not found." to console
+                send "Variable '%{_name}%' not found." to {_player}
+
+command /setvariable <text> <text>:
+    trigger:
+        set database variable arg-1 to arg-2
+        send "Variable '%arg-1%' set to '%arg-2%'." to player
+
+command /getvariable <text>:
+    trigger:
+        get database variable arg-1 and send to player
