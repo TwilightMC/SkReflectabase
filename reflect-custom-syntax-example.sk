@@ -40,17 +40,17 @@ effect set database variable %text% to %text%:
                 set {_updateQuery} to "UPDATE variables SET value = ? WHERE name = ?"
                 set {_updateResult} to {_dbManager}.executeUpdate({_updateQuery}, {_value}, {_name})
                 if {_updateResult} > 0:
-                    send "Variable '%{_name}%' updated to '%{_value}%'." to console
+                    send "Database Variable '%{_name}%' updated to '%{_value}%'." to console
                 else:
-                    send "Failed to update variable '%{_name}%'." to console
+                    send "Failed to update database variable '%{_name}%'." to console
             else:
                 # Insert new variable
                 set {_insertQuery} to "INSERT INTO variables (name, value) VALUES (?, ?)"
                 set {_insertResult} to {_dbManager}.executeUpdate({_insertQuery}, {_name}, {_value})
                 if {_insertResult} > 0:
-                    send "Variable '%{_name}%' set to '%{_value}%'." to console
+                    send "Database Variable '%{_name}%' set to '%{_value}%'." to console
                 else:
-                    send "Failed to set variable '%{_name}%'." to console
+                    send "Failed to set database variable '%{_name}%'." to console
 
 # Custom effect to get a database variable and send the result to a player
 effect get database variable %text% and send to %player%:
@@ -69,11 +69,38 @@ effect get database variable %text% and send to %player%:
         if {_result} is not null:
             if {_result}.getRowCount() > 0:
                 set {_value} to {_result}.getValue(0, "value")
-                send "Variable '%{_name}%' has value '%{_value}%'." to console
-                send "Variable '%{_name}%' has value '%{_value}%'." to {_player}
+                send "Database Variable '%{_name}%' has value '%{_value}%'." to console
+                send "Database Variable '%{_name}%' has value '%{_value}%'." to {_player}
             else:
-                send "Variable '%{_name}%' not found." to console
-                send "Variable '%{_name}%' not found." to {_player}
+                send "Database Variable '%{_name}%' not found." to console
+                send "Database Variable '%{_name}%' not found." to {_player}
+
+# Custom effect to get a database variable and copy it into a Skript-Variable (This is from my personal project, enjoy.)
+# Example in a Skript Expression '!copy database variable "TestingARealVar" to skript variable "e"'
+# {e} will be set to that variable. :D
+effect copy database variable %text% to skript variable %text%:
+    trigger:
+        set {_name} to expr-1
+        set {_varname} to expr-2
+
+        # Get plugin instance and database manager
+        set {_plugin} to SkReflectabase.getInstance()
+        set {_dbManager} to {_plugin}.getDatabaseManager()
+
+        # Retrieve variable value
+        set {_selectQuery} to "SELECT value FROM variables WHERE name = ?"
+        set {_result} to {_dbManager}.executeQuery({_selectQuery}, {_name})
+
+        if {_result} is not null:
+            if {_result}.getRowCount() > 0:
+                set {_value} to {_result}.getValue(0, "value")
+                # send "Variable '%{_name}%' has value '%{_value}%'." to console
+                send "Database Variable '%{_name}%' has value '%{_value}%'." to console
+                set {%{_varname}%} to {_value}
+                send "Skript Variable '%{%{_varname}%}%' set to '%{_value}%'." to console
+            else:
+                # send "Variable '%{_name}%' not found." to console
+                send "Database Variable '%{_name}%' not found." to console
 
 command /setvariable <text> <text>:
     trigger:
